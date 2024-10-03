@@ -11,15 +11,14 @@
 #include <sys/stat.h>         // mkdir
 #include "blockqueue.h"
 #include "../buffer/buffer.h"
+using namespace std;
 
 class Log {
 public:
     // 初始化日志实例（阻塞队列最大容量、日志保存路径、日志文件后缀）
-    void Init(int level, const char* path = "./log", 
-                const char* suffix =".log",
-                int maxQueueCapacity = 1024);
+    void Init(int level, const char* path = "./log", const char* suffix = ".log", int MaxQueueCapacity=1024);
 
-    static Log* Instance();
+    static Log* getInstance();
     static void FlushLogThread();   // 异步写日志公有方法，调用私有方法asyncWrite
     
     void write(int level, const char *format,...);  // 将输出内容按照标准格式整理
@@ -31,9 +30,9 @@ public:
     
 private:
     Log();
-    void AppendLogLevelTitle_(int level);
+    void AppendLevelTitle_(int level);
     virtual ~Log();
-    void AsyncWrite_(); // 异步写日志方法
+    void AsyncLog_(); // 异步写日志方法
 
 private:
     static const int LOG_PATH_LEN = 256;    // 日志文件最长文件名
@@ -54,15 +53,15 @@ private:
     int level_;         // 日志等级
     bool isAsync_;      // 是否开启异步日志
 
-    FILE* fp_;                                          //打开log的文件指针
-    std::unique_ptr<BlockQueue<std::string>> deque_;    //阻塞队列
+    FILE* f_;                                          //打开log的文件指针
+    std::unique_ptr<Blockqueue<std::string>> deq_;    //阻塞队列
     std::unique_ptr<std::thread> writeThread_;          //写线程的指针
     std::mutex mtx_;                                    //同步日志必需的互斥量
 };
 
 #define LOG_BASE(level, format, ...) \
     do {\
-        Log* log = Log::Instance();\
+        Log* log = Log::getInstance();\
         if (log->IsOpen() && log->GetLevel() <= level) {\
             log->write(level, format, ##__VA_ARGS__); \
             log->flush();\

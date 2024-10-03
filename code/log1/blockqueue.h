@@ -8,10 +8,10 @@
 using namespace std;
 
 template<typename T>
-class BlockQueue {
+class Blockqueue {
 public:
-    explicit BlockQueue(size_t maxsize = 1000);
-    ~BlockQueue();
+    explicit Blockqueue(size_t maxsize = 1000);
+    ~Blockqueue();
     bool empty();
     bool full();
     void push_back(const T& item);
@@ -25,58 +25,58 @@ public:
     size_t size();
 
     void flush();
-    void Close();
+    void close();
 
 private:
     deque<T> deq_;                      // 底层数据结构
     mutex mtx_;                         // 锁
-    bool isClose_;                      // 关闭标志
+    bool isClose;                      // 关闭标志
     size_t capacity_;                   // 容量
     condition_variable condConsumer_;   // 消费者条件变量
     condition_variable condProducer_;   // 生产者条件变量
 };
 
 template<typename T>
-BlockQueue<T>::BlockQueue(size_t maxsize) : capacity_(maxsize) {
+Blockqueue<T>::Blockqueue(size_t maxsize) : capacity_(maxsize) {
     assert(maxsize > 0);
-    isClose_ = false;
+    isClose = false;
 }
 
 template<typename T>
-BlockQueue<T>::~BlockQueue() {
-    Close();
+Blockqueue<T>::~Blockqueue() {
+    close();
 }
 
 template<typename T>
-void BlockQueue<T>::Close() {
+void Blockqueue<T>::close() {
     // lock_guard<mutex> locker(mtx_); // 操控队列之前，都需要上锁
     // deq_.clear();                   // 清空队列
     clear();
-    isClose_ = true;
+    isClose = true;
     condConsumer_.notify_all();
     condProducer_.notify_all();
 }
 
 template<typename T>
-void BlockQueue<T>::clear() {
+void Blockqueue<T>::clear() {
     lock_guard<mutex> locker(mtx_);
     deq_.clear();
 }
 
 template<typename T>
-bool BlockQueue<T>::empty() {
+bool Blockqueue<T>::empty() {
     lock_guard<mutex> locker(mtx_);
     return deq_.empty();
 }
 
 template<typename T>
-bool BlockQueue<T>::full() {
+bool Blockqueue<T>::full() {
     lock_guard<mutex> locker(mtx_);
     return deq_.size() >= capacity_;
 }
 
 template<typename T>
-void BlockQueue<T>::push_back(const T& item) {
+void Blockqueue<T>::push_back(const T& item) {
     // 注意，条件变量需要搭配unique_lock
     unique_lock<mutex> locker(mtx_);    
     while(deq_.size() >= capacity_) {   // 队列满了，需要等待
@@ -87,7 +87,7 @@ void BlockQueue<T>::push_back(const T& item) {
 }
 
 template<typename T>
-void BlockQueue<T>::push_front(const T& item) {
+void Blockqueue<T>::push_front(const T& item) {
     unique_lock<mutex> locker(mtx_);
     while(deq_.size() >= capacity_) {   // 队列满了，需要等待
         condProducer_.wait(locker);     // 暂停生产，等待消费者唤醒生产条件变量
@@ -97,7 +97,7 @@ void BlockQueue<T>::push_front(const T& item) {
 }
 
 template<typename T>
-bool BlockQueue<T>::pop(T& item) {
+bool Blockqueue<T>::pop(T& item) {
     unique_lock<mutex> locker(mtx_);
     while(deq_.empty()) {
         condConsumer_.wait(locker);     // 队列空了，需要等待
@@ -109,14 +109,14 @@ bool BlockQueue<T>::pop(T& item) {
 }
 
 template<typename T>
-bool BlockQueue<T>::pop(T &item, int timeout) {
+bool Blockqueue<T>::pop(T &item, int timeout) {
     unique_lock<std::mutex> locker(mtx_);
     while(deq_.empty()){
         if(condConsumer_.wait_for(locker, std::chrono::seconds(timeout)) 
                 == std::cv_status::timeout){
             return false;
         }
-        if(isClose_){
+        if(isClose){
             return false;
         }
     }
@@ -127,32 +127,32 @@ bool BlockQueue<T>::pop(T &item, int timeout) {
 }
 
 template<typename T>
-T BlockQueue<T>::front() {
+T Blockqueue<T>::front() {
     lock_guard<std::mutex> locker(mtx_);
     return deq_.front();
 }
 
 template<typename T>
-T BlockQueue<T>::back() {
+T Blockqueue<T>::back() {
     lock_guard<std::mutex> locker(mtx_);
     return deq_.back();
 }
 
 template<typename T>
-size_t BlockQueue<T>::capacity() {
+size_t Blockqueue<T>::capacity() {
     lock_guard<std::mutex> locker(mtx_);
     return capacity_;
 }
 
 template<typename T>
-size_t BlockQueue<T>::size() {
+size_t Blockqueue<T>::size() {
     lock_guard<std::mutex> locker(mtx_);
     return deq_.size();
 }
 
 // 唤醒消费者
 template<typename T>
-void BlockQueue<T>::flush() {
+void Blockqueue<T>::flush() {
     condConsumer_.notify_one();
 }
 # endif
