@@ -1,7 +1,7 @@
 #include "buffer.h"
 using namespace std;
 
-Buffer::Buffer(int initBufferSize): buffer_(initBufferSize), readPos_(0),writePos(0){}
+Buffer::Buffer(int initBufferSize): buffer_(initBufferSize), readPos_(0),writePos_(0){}
 
 size_t Buffer::WritableBytes() const{
   return buffer_.size()-writePos_;
@@ -40,14 +40,14 @@ void Buffer::RetriveUntil(const char* end){
 }
 
 void Buffer::RetriveAll(){
-  bzero(&buffer[0], buffer_.size());//覆盖原本数据
+  bzero(&buffer_[0], buffer_.size());//覆盖原本数据
   readPos_=writePos_=0;
 }
 
 // 取出剩余可读的str
-void Buffer::RetriveAllToStr(){
-  string str(Peek(),);
-  RetriveAll;
+string Buffer::RetriveAllToStr(){
+  string str(Peek(),ReadableBytes());
+  RetriveAll();
   return str;
 }
 
@@ -63,7 +63,7 @@ const char* Buffer::WriteBeginConst() const{
 void Buffer::Append(const char* str, size_t len){
   assert(str);
   EnsureWriteable(len);
-  copy(str, str+len, WriteBegin())//将str放到写下标开始的地方
+  copy(str, str+len, WriteBegin());//将str放到写下标开始的地方
   HasWritten(len);
 }
 
@@ -77,24 +77,24 @@ void Buffer::Append(const void* data, size_t len){
 
 //将buffer中的读下标的地方放到该buffer中的写下标位置
 void Buffer::Append(const Buffer& buff){
-  Append(buff.Peak(), ReadableBytes());
+  Append(buff.Peek(), ReadableBytes());
 }
 
-char* BeginPtr(){
+char* Buffer::BeginPtr(){
   return &buffer_[0];
 }
 
-const char* BeginPtrConst() const{
+const char* Buffer::BeginPtrConst() const{
   return &buffer_[0];
 }
 
 //
-ssize_t ReadFd(int fd, int* Error){
+ssize_t Buffer::ReadFd(int fd, int* Error){
   char buff[65535];
   struct iovec iov[2];
   size_t writeable=WritableBytes();
 
-  iov[0].iov_base = BeginWrite();
+  iov[0].iov_base = WriteBegin();
   iov[0].iov_len = writeable;
   iov[1].iov_base = buff;
   iov[1].iov_len = sizeof(buff);
@@ -104,18 +104,18 @@ ssize_t ReadFd(int fd, int* Error){
   if(len<0){
     *Error = errno;
   }
-  else if(static_cast<size_t>len <= writeable){
+  else if(static_cast<size_t>(len) <= writeable){
     writePos_+=len;
   }
   else{
-    writePos=buffer_.size();
+    writePos_=buffer_.size();
     Append(buff, static_cast<size_t>(len-writeable));
   }
   return len;
 }
 
 //
-ssize_t WriteFd(int fd, int* Error){
+ssize_t Buffer::WriteFd(int fd, int* Error){
   ssize_t len = write(fd, Peek(), ReadableBytes());
 
   if(len<0){
@@ -127,7 +127,7 @@ ssize_t WriteFd(int fd, int* Error){
   return len;
 }
 
-void MakeSpace(size_t len){
+void Buffer::MakeSpace(size_t len){
   if(WritableBytes()+PrependableBytes() < len){
     buffer_.resize(writePos_+len+1);
   }

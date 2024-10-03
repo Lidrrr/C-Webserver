@@ -40,20 +40,20 @@ private:
 
 class SqlConnRAII{
 public:
-  SqlConnRAII(MYSQL** sql, SqlConnPool connPool){
+  SqlConnRAII(MYSQL** sql, SqlConnPool* connPool){
     assert(connPool);
     *sql = connPool->GetConn();
     sql_=*sql;
     connPool_=connPool;
   }
-  ~SqlConnPool(){
-    if(sql_){sql_->FreeConn(sql_);}
+  ~SqlConnRAII(){
+    if(sql_){connPool_->FreeConn(sql_);}
   }
 private:
-  MYSQL* sql_
-  SqlConnPool connPool_;
+  MYSQL* sql_;
+  SqlConnPool* connPool_;
 
-}
+};
 
 
 #endif

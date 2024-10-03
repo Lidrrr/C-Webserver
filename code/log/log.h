@@ -18,7 +18,7 @@ public:
   bool IsOpen() { return isOpen_; }
   void flush();
   static Log* getInstance();
-  static vid FlushLogThread();
+  static void FlushLogThread();
   
   int GetLevel();
   void SetLevel(int level);
@@ -27,7 +27,7 @@ public:
 private:
   Log();
   virtual ~Log();
-  void AppendLevelTitle_();// 异步写日志公有方法，调用私有方法asyncWrite
+  void AppendLevelTitle_(int level);// 异步写日志公有方法，调用私有方法asyncWrite
   void AsyncLog_();
 
 private:
@@ -57,15 +57,14 @@ private:
 
 };
 
-#define LOG_BASE(level, format, ...){
-  do{
-    Log* log = Log::getInstance();
-    if(log->isOpen() && log->GetLevel()<=level){
-      log->write(level, format, ##__VA_ARGS__);
-      log->flush();
-    }
-  }while(0);
-}
+#define LOG_BASE(level, format, ...) \
+    do {\
+        Log* log = Log::getInstance();\
+        if (log->IsOpen() && log->GetLevel() <= level) {\
+            log->write(level, format, ##__VA_ARGS__); \
+            log->flush();\
+        }\
+    } while(0);
 
 // 四个宏定义，主要用于不同类型的日志输出，也是外部使用日志的接口
 // ...表示可变参数，__VA_ARGS__就是将...的值复制到这里

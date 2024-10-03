@@ -16,8 +16,8 @@ public:
   bool empty();
   void push_back(const T& item);
   void push_front(const T& item);
-  void pop(T& item);
-  void pop(T& item, int timeout);
+  bool pop(T& item);
+  bool pop(T& item, int timeout);
   void close();
   void flush();
   void clear();
@@ -73,22 +73,22 @@ bool Blockqueue<T>::full(){
 
 
 template<typename T>
-bool Blockqueue<T>::push_back(const T& item){ 
+void Blockqueue<T>::push_back(const T& item){ 
   unique_lock<mutex>locker(mtx_);
-  while(deq_size()>=capacity_){
+  while(deq_.size()>=capacity_){
     condProducer_.wait(locker);
   }
-  deque.push_back(item);
+  deq_.push_back(item);
   condConsumer_.notify_one();
 }
 
 template<typename T>
-bool Blockqueue<T>::push_front(const T& item){ 
+void Blockqueue<T>::push_front(const T& item){ 
   unique_lock<mutex>locker(mtx_);
-  while(deq_size()>=capacity_){
+  while(deq_.size()>=capacity_){
     condProducer_.wait(locker);
   }
-  deque.push_front(item);
+  deq_.push_front(item);
   condConsumer_.notify_one();
 }
 
@@ -99,10 +99,10 @@ bool Blockqueue<T>::pop(T& item){
   while(deq_.empty()){
     condProducer_.wait(locker);
   }
-  item = deque.front();
+  item = deq_.front();
   deq_.pop_front();
   condConsumer_.notify_one();
-  return ture;
+  return true;
 }
 
 template<typename T>
@@ -112,10 +112,10 @@ bool Blockqueue<T>::pop(T& item, int timeout){
     if(condProducer_.wait_for(locker, chrono::seconds(timeout))==cv_status::timeout){return false;}
     if(isClosed){return false;}
   }
-  item = deque.front();
+  item = deq_.front();
   deq_.pop_front();
   condConsumer_.notify_one();
-  return ture;
+  return true;
 }
 
 
@@ -146,7 +146,7 @@ size_t Blockqueue<T>::size(){
 
 // 唤醒消费者
 template<typename T>
-void BlockQueue<T>::flush() {
+void Blockqueue<T>::flush() {
     condConsumer_.notify_one();
 }
 

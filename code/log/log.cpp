@@ -2,8 +2,8 @@
 
 // 构造函数
 Log::Log() {
-    fp_ = nullptr;
-    deque_ = nullptr;
+    f_ = nullptr;
+    deq_ = nullptr;
     writeThread_ = nullptr;
     lineCount_ = 0;
     toDay_ = 0;
@@ -11,7 +11,7 @@ Log::Log() {
 }
 
 Log::~Log(){
-  while(!deq_.empty()){deq_->flush();}
+  while(!deq_->empty()){deq_->flush();}
   deq_->close();
   writeThread_->join();
   if(f_){
@@ -43,12 +43,13 @@ void Log::AsyncLog_(){
   string str="";
   while(deq_->pop(str)){
     lock_guard<mutex>locker(mtx_);
-    fputs(str.c_str,f_);
+    fputs(str.c_str(),f_);
   }
 }
 
+
 // 添加日志等级
-void Log::AppendLogLevelTitle_(int level) {
+void Log::AppendLevelTitle_(int level) {
     switch(level) {
     case 0:
         buff_.Append("[debug]: ", 9);
@@ -79,18 +80,18 @@ void Log::SetLevel(int level) {
 }
 
 // 初始化日志实例
-void Log::init(int level, int MaxQueueCapacity, const char* suffix, const char* path) {
+void Log::Init(int level, int MaxQueueCapacity, const char* suffix, const char* path) {
     isOpen_ = true;
     level_ = level;
     path_ = path;
     suffix_ = suffix;
-    if(maxQueCapacity) {    // 异步方式
+    if(MaxQueueCapacity) {    // 异步方式
         isAsync_ = true;
-        if(!deque_) {   // 为空则创建一个
-            unique_ptr<BlockQueue<std::string>> newQue(new BlockQueue<std::string>);
+        if(!deq_) {   // 为空则创建一个
+            unique_ptr<Blockqueue<std::string>> newQue(new Blockqueue<std::string>);
             // 因为unique_ptr不支持普通的拷贝或赋值操作,所以采用move
             // 将动态申请的内存权给deque，newDeque被释放
-            deque_ = move(newQue);  // 左值变右值,掏空newDeque
+            deq_ = move(newQue);  // 左值变右值,掏空newDeque
 
             unique_ptr<thread> newThread(new thread(FlushLogThread));
             writeThread_ = move(newThread);
@@ -109,17 +110,17 @@ void Log::init(int level, int MaxQueueCapacity, const char* suffix, const char* 
 
     {
         lock_guard<mutex> locker(mtx_);
-        buff_.RetrieveAll();
-        if(fp_) {   // 重新打开
+        buff_.RetriveAll();
+        if(f_) {   // 重新打开
             flush();
-            fclose(fp_);
+            fclose(f_);
         }
-        fp_ = fopen(fileName, "a"); // 打开文件读取并附加写入
-        if(fp_ == nullptr) {
+        f_ = fopen(fileName, "a"); // 打开文件读取并附加写入
+        if(f_ == nullptr) {
             mkdir(fileName, 0777);
-            fp_ = fopen(fileName, "a"); // 生成目录文件（最大权限）
+            f_ = fopen(fileName, "a"); // 生成目录文件（最大权限）
         }
-        assert(fp_ != nullptr);
+        assert(f_ != nullptr);
     }
 }
 
@@ -153,35 +154,35 @@ void Log::write(int level, const char *format, ...) {
 
         locker.lock();
         flush();
-        fclose(fp_);
-        fp_ = fopen(newFile, "a");
-        assert(fp_ != nullptr);
+        fclose(f_);
+        f_ = fopen(newFile, "a");
+        assert(f_ != nullptr);
     }
 
     // 在buffer内生成一条对应的日志信息
     {
         unique_lock<mutex> locker(mtx_);
         lineCount_++;
-        int n = snprintf(buff_.BeginWrite(), 128, "%d-%02d-%02d %02d:%02d:%02d.%06ld ",
+        int n = snprintf(buff_.WriteBegin(), 128, "%d-%02d-%02d %02d:%02d:%02d.%06ld ",
                     t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
                     t.tm_hour, t.tm_min, t.tm_sec, now.tv_usec);
 
         buff_.HasWritten(n);
-        AppendLogLevelTitle_(level);
+        AppendLevelTitle_(level);
 
         va_start(vaList, format);
-        int m = vsnprintf(buff_.BeginWrite(), buff_.WritableBytes(), format, vaList);
+        int m = vsnprintf(buff_.WriteBegin(), buff_.WritableBytes(), format, vaList);
         va_end(vaList);
 
         buff_.HasWritten(m);
         buff_.Append("\n\0", 2);
 
-        if(isAsync_ && deque_ && !deque_->full()) { // 异步方式（加入阻塞队列中，等待写线程读取日志信息）
-            deque_->push_back(buff_.RetrieveAllToStr());
+        if(isAsync_ && deq_ && !deq_->full()) { // 异步方式（加入阻塞队列中，等待写线程读取日志信息）
+            deq_->push_back(buff_.RetriveAllToStr());
         } else {    // 同步方式（直接向文件中写入日志信息）
-            fputs(buff_.Peek(), fp_);   // 同步就直接写入文件
+            fputs(buff_.Peek(), f_);   // 同步就直接写入文件
         }
-        buff_.RetrieveAll();    // 清空buff
+        buff_.RetriveAll();    // 清空buff
     }
 }
 

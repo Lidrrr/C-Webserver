@@ -56,5 +56,5 @@ private:
   char* BeginPtr();
   const char* BeginPtrConst() const;
   void MakeSpace(size_t len);
-}
+};
  #endif
