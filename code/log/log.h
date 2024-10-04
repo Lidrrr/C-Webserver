@@ -15,7 +15,7 @@
 class Log {
 public:
     // 初始化日志实例（阻塞队列最大容量、日志保存路径、日志文件后缀）
-    void Init(int level, const char* path = "./log", 
+    void init(int level, const char* path = "./log", 
                 const char* suffix =".log",
                 int maxQueueCapacity = 1024);
 

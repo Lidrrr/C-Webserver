@@ -7,54 +7,44 @@
 #include <vector> //readv
 #include <atomic>
 #include <assert.h>
-using namespace std;
-class Buffer{
+class Buffer {
 public:
-  //构造函数 析构函数
-  Buffer(int initBuffersize = 1024);
-  ~Buffer()=default;
+    Buffer(int initBuffSize = 1024);
+    ~Buffer() = default;
 
-  //可读 可写 预留大小 
-  size_t WritableBytes() const;
-  size_t ReadableBytes() const;
-  size_t PrependableBytes() const;
+    size_t WritableBytes() const;       
+    size_t ReadableBytes() const ;
+    size_t PrependableBytes() const;
 
-  //?
-  //获取读下标的元素
-  const char* Peek() const;
-  
-  //确保可写的长度
-  void EnsureWriteable(size_t len);
-  //移动写下标，在Append中使用
-  void HasWritten(size_t len);
+    const char* Peek() const;
+    void EnsureWriteable(size_t len);
+    void HasWritten(size_t len);
 
-  //读取
-  void Retrive(size_t len);
-  void RetriveUntil(const char* end);
-  void RetriveAll();
-  std::string  RetriveAllToStr();
+    void Retrieve(size_t len);
+    void RetrieveUntil(const char* end);
 
-  //?                
-  //获取写下标的元素 
-  char* WriteBegin();
-  const char* WriteBeginConst() const;
+    void RetrieveAll();
+    std::string RetrieveAllToStr();
 
-  //写
-  void Append(const string& str);
-  void Append(const void* data, size_t len);
-  void Append(const char* str, size_t len);
-  void Append(const Buffer& buff);
+    const char* BeginWriteConst() const;
+    char* BeginWrite();
 
-  //
-  ssize_t ReadFd(int fd, int* Error);
-  ssize_t WriteFd(int fd, int* Error);
+    void Append(const std::string& str);
+    void Append(const char* str, size_t len);
+    void Append(const void* data, size_t len);
+    void Append(const Buffer& buff);
+
+    ssize_t ReadFd(int fd, int* Errno);
+    ssize_t WriteFd(int fd, int* Errno);
+
 private:
-  vector<char>buffer_;
-  atomic<size_t>readPos_;
-  atomic<size_t>writePos_;
+    char* BeginPtr_();  // buffer开头
+    const char* BeginPtr_() const;
+    void MakeSpace_(size_t len);
 
-  char* BeginPtr();
-  const char* BeginPtrConst() const;
-  void MakeSpace(size_t len);
+    std::vector<char> buffer_;  
+    std::atomic<std::size_t> readPos_;  // 读的下标
+    std::atomic<std::size_t> writePos_; // 写的下标
 };
- #endif
+
+#endif //BUFFER_H

@@ -1,0 +1,18 @@
+2024-10-03 20:30:51.843861 [info] : ========== Server init ==========
+2024-10-03 20:30:51.843982 [info] : Listen Mode: ET, OpenConn Mode: LT
+2024-10-03 20:30:51.844001 [info] : LogSys level: 1
+2024-10-03 20:30:51.844015 [info] : srcDir: (null)
+2024-10-03 20:30:51.844029 [info] : SqlConnPool num: 12, ThreadPool num: 8
+2024-10-03 20:30:51.917820 [error]: MySql Connect error!
+2024-10-03 20:30:51.920624 [error]: MySql Connect error!
+2024-10-03 20:30:51.923099 [error]: MySql Connect error!
+2024-10-03 20:30:51.926136 [error]: MySql Connect error!
+2024-10-03 20:30:51.928529 [error]: MySql Connect error!
+2024-10-03 20:30:51.930367 [error]: MySql Connect error!
+2024-10-03 20:30:51.932034 [error]: MySql Connect error!
+2024-10-03 20:30:51.934349 [error]: MySql Connect error!
+2024-10-03 20:30:51.936088 [error]: MySql Connect error!
+2024-10-03 20:30:51.937576 [error]: MySql Connect error!
+2024-10-03 20:30:51.938535 [error]: MySql Connect error!
+2024-10-03 20:30:51.939504 [error]: MySql Connect error!
+2024-10-03 20:30:51.939759 [info] : Server port:1316

@@ -1,12 +1,12 @@
 #include "sqlconnpool.h"
 
-SqlConnPool* SqlConnPool::getInstance() {
+SqlConnPool* SqlConnPool::Instance() {
     static SqlConnPool pool;
     return &pool;
 }
 
 // 初始化
-void SqlConnPool::Init(const char* host, int port,
+void SqlConnPool::Init(const char* host, uint16_t port,
               const char* user,const char* pwd, 
               const char* dbName, int connSize = 10) {
     assert(connSize > 0);
@@ -23,8 +23,8 @@ void SqlConnPool::Init(const char* host, int port,
         }
         connQue_.emplace(conn);
     }
-    MaxConn_ = connSize;
-    sem_init(&semId_, 0, MaxConn_);
+    MAX_CONN_ = connSize;
+    sem_init(&semId_, 0, MAX_CONN_);
 }
 
 MYSQL* SqlConnPool::GetConn() {
@@ -62,4 +62,3 @@ int SqlConnPool::GetFreeConnCount() {
     lock_guard<mutex> locker(mtx_);
     return connQue_.size();
 }
-

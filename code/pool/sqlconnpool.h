@@ -1,9 +1,3 @@
-/*************************************************************************
-    > File Name: sqlconnpool.h
-    > Author: ma6174
-    > Mail: ma6174@163.com 
-    > Created Time: 2024年10月01日 星期二 21时33分14秒
- ************************************************************************/
 #ifndef SQLCONNPOOL_H
 #define SQLCONNPOOL_H
 
@@ -15,45 +9,47 @@
 #include <thread>
 #include "../log/log.h"
 
-using namespace std;
-
-class SqlConnPool{
+class SqlConnPool {
 public:
-  static SqlConnPool* getInstance();
-  MYSQL* GetConn();//获取一个可用的数据库连接。
-  void FreeConn(MYSQL* conn);//释放一个数据库连接，将其返回到连接池中。
-  int GetFreeConnCount();//获取当前连接池中可用连接的数量。
+    static SqlConnPool *Instance();
 
-  void Init(const char* user,int port,const char* host, const char* pwd, const char* dbName,int connSize);
-  void ClosePool();
+    MYSQL *GetConn();
+    void FreeConn(MYSQL * conn);
+    int GetFreeConnCount();
+
+    void Init(const char* host, uint16_t port,
+              const char* user,const char* pwd, 
+              const char* dbName, int connSize);
+    void ClosePool();
 
 private:
-  SqlConnPool()=default;
-  ~SqlConnPool(){ClosePool();}
+    SqlConnPool() = default;
+    ~SqlConnPool() { ClosePool(); }
 
-  int MaxConn_;
+    int MAX_CONN_;
 
-  mutex mtx_;
-  sem_t semId_;
-  queue<MYSQL*>connQue_;
+    std::queue<MYSQL *> connQue_;
+    std::mutex mtx_;
+    sem_t semId_;
 };
 
-class SqlConnRAII{
+/* 资源在对象构造初始化 资源在对象析构时释放*/
+class SqlConnRAII {
 public:
-  SqlConnRAII(MYSQL** sql, SqlConnPool* connPool){
-    assert(connPool);
-    *sql = connPool->GetConn();
-    sql_=*sql;
-    connPool_=connPool;
-  }
-  ~SqlConnRAII(){
-    if(sql_){connPool_->FreeConn(sql_);}
-  }
+    SqlConnRAII(MYSQL** sql, SqlConnPool *connpool) {
+        assert(connpool);
+        *sql = connpool->GetConn();
+        sql_ = *sql;
+        connpool_ = connpool;
+    }
+    
+    ~SqlConnRAII() {
+        if(sql_) { connpool_->FreeConn(sql_); }
+    }
+    
 private:
-  MYSQL* sql_;
-  SqlConnPool* connPool_;
-
+    MYSQL *sql_;
+    SqlConnPool* connpool_;
 };
 
-
-#endif
+#endif // SQLCONNPOOL_H

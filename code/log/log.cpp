@@ -52,12 +52,12 @@ void Log::AsyncWrite_() {
 }
 
 // 初始化日志实例
-void Log::Init(int level, const char* path, const char* suffix, int MaxQueCapacity) {
+void Log::init(int level, const char* path, const char* suffix, int maxQueCapacity) {
     isOpen_ = true;
     level_ = level;
     path_ = path;
     suffix_ = suffix;
-    if(MaxQueCapacity) {    // 异步方式
+    if(maxQueCapacity) {    // 异步方式
         isAsync_ = true;
         if(!deque_) {   // 为空则创建一个
             unique_ptr<BlockQueue<std::string>> newQue(new BlockQueue<std::string>);
@@ -86,7 +86,7 @@ void Log::Init(int level, const char* path, const char* suffix, int MaxQueCapaci
 
     {
         lock_guard<mutex> locker(mtx_);
-        buff_.RetriveAll();
+        buff_.RetrieveAll();
         if(fp_) {   // 重新打开
             flush();
             fclose(fp_);
@@ -139,7 +139,7 @@ void Log::write(int level, const char *format, ...) {
     {
         unique_lock<mutex> locker(mtx_);
         lineCount_++;
-        int n = snprintf(buff_.WriteBegin(), 128, "%d-%02d-%02d %02d:%02d:%02d.%06ld ",
+        int n = snprintf(buff_.BeginWrite(), 128, "%d-%02d-%02d %02d:%02d:%02d.%06ld ",
                     t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
                     t.tm_hour, t.tm_min, t.tm_sec, now.tv_usec);
                     
@@ -147,18 +147,18 @@ void Log::write(int level, const char *format, ...) {
         AppendLogLevelTitle_(level);    
 
         va_start(vaList, format);
-        int m = vsnprintf(buff_.WriteBegin(), buff_.WritableBytes(), format, vaList);
+        int m = vsnprintf(buff_.BeginWrite(), buff_.WritableBytes(), format, vaList);
         va_end(vaList);
 
         buff_.HasWritten(m);
         buff_.Append("\n\0", 2);
 
         if(isAsync_ && deque_ && !deque_->full()) { // 异步方式（加入阻塞队列中，等待写线程读取日志信息）
-            deque_->push_back(buff_.RetriveAllToStr());
+            deque_->push_back(buff_.RetrieveAllToStr());
         } else {    // 同步方式（直接向文件中写入日志信息）
             fputs(buff_.Peek(), fp_);   // 同步就直接写入文件
         }
-        buff_.RetriveAll();    // 清空buff
+        buff_.RetrieveAll();    // 清空buff
     }
 }
 
